@@ -1,4 +1,5 @@
 **/*.dat
 **/bin
 .idea
+**/*.log
 **/*.exe
