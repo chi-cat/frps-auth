@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <title>FRPS授权</title>
+    <link rel="stylesheet" href="/auth-statistics/layui/css/layui.css" media="all">
+    <style>
+        body {
+            margin: 10px;
+        }
+
+        .demo-carousel {
+            height: 200px;
+            line-height: 200px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<table class="layui-hide" id="frps-auth" lay-filter="auth-table"></table>
+
+
+<script src="/auth-statistics/layui/layui.js"></script>
+<script>
+    layui.config({
+        version: '1583393622887' //为了更新 js 缓存，可忽略
+    });
+
+    layui.use(['layer', 'table'], function () {
+        var layer = layui.layer //弹层
+            , table = layui.table //表格
+
+        //执行一个 table 实例
+        table.render({
+            elem: '#frps-auth'
+            , height: 'full-30'
+            , url: '/list-auth' //数据接口
+            , method: 'post'
+            , title: '授权表'
+            , toolbar: 'default' //开启工具栏，此处显示默认图标，可以自定义模板，详见文档
+            , defaultToolbar: [{
+                title: '提示配置信息'
+                , layEvent: 'CONFIG_TIPS'
+                , icon: 'layui-icon-tips'
+            }, 'filter', 'exports', 'print']
+            , cols: [[ //表头
+                {type: 'checkbox', fixed: 'left'}
+                , {field: 'id', title: 'ID', width: 80, sort: true, fixed: 'left'}
+                , {field: 'proxy_name', title: '代理名称'}
+                , {field: 'proxy_type', title: '代理类型', sort: true}
+                , {field: 'remote_port', title: '远程端口', sort: true}
+                , {
+                    field: 'valid_to', title: '有效期', sort: true, templet: function (d) {
+                        var date = new Date(d.valid_to);
+
+                        function prefixZero2(number) {
+                            if (number < 10) {
+                                return '0' + number;
+                            } else {
+                                return number;
+                            }
+                        }
+
+                        return date.getFullYear() + "-" + prefixZero2(date.getMonth() + 1) + "-" + prefixZero2(date.getDate())
+                    }
+                }
+                , {field: 'memo', title: '备注'}
+                , {field: 'sign', title: '签名'}
+            ]]
+            , id: 'auth-table'
+        });
+
+        //监听头工具栏事件
+        table.on('toolbar(auth-table)', function (obj) {
+            var checkStatus = table.checkStatus(obj.config.id)
+                , data = checkStatus.data; //获取选中的数据
+            switch (obj.event) {
+                case 'add':
+                    layer.open({
+                        type: 2 //此处以iframe举例
+                        , id: "auth-form-window"
+                        , title: '添加授权'
+                        , area: ['600px', '400px']
+                        , shade: 0.8
+                        , maxmin: false
+                        , content: '/auth-statistics/form.html'
+                        , zIndex: layer.zIndex //重点1
+                        , success: function (layero) {
+                            layer.setTop(layero); //重点/2
+                        }
+                    });
+                    break;
+                case 'update':
+                    if (data.length === 0) {
+                        layer.msg('请选择一行');
+                    } else if (data.length > 1) {
+                        layer.msg('只能同时编辑一个');
+                    } else {
+                        layer.open({
+                            type: 2 //此处以iframe举例
+                            , title: '修改授权'
+                            , id: "auth-form-window"
+                            , area: ['500px', '400px']
+                            , shade: 0.8
+                            , maxmin: false
+                            , content: '/auth-statistics/form.html#' + checkStatus.data[0].id
+                            , zIndex: layer.zIndex //重点1
+                            , success: function (layero) {
+                                layer.setTop(layero); //重点2
+                            }
+                        });
+                    }
+                    break;
+                case 'delete':
+                    if (data.length === 0) {
+                        layer.msg('请选择一行');
+                    } else {
+                        for (var i = 0; i < checkStatus.data.length; i++) {
+                            fetch("/delete-auth/" + checkStatus.data[i].id, {
+                                method: 'POST'
+                            }).then(value => value.json(), reason => layer.msg(reason))
+                                .then(value => {
+                                    if (value.status == 0) {
+                                        table.reload('auth-table', {}, 'data')
+                                        parent.layui.msg("删除成功！")
+                                    } else {
+                                        parent.layui.msg("请稍后再试...")
+                                    }
+                                })
+
+                        }
+
+                    }
+                    break;
+                case 'CONFIG_TIPS':
+                    if (data.length === 0) {
+                        layer.msg('请选择一行');
+                    } else if (data.length > 1) {
+                        layer.msg('只能选择一个');
+                    } else {
+                        layer.open({
+                            type: 2 //此处以iframe举例
+                            , title: checkStatus.data[0].id
+                            , id: "auth-config-window"
+                            , area: ['500px', '120px']
+                            , shade: 0.8
+                            , maxmin: false
+                            , content: '/get-auth-config/' + checkStatus.data[0].id
+                            , zIndex: layer.zIndex //重点1
+                            , success: function (layero) {
+                                layer.setTop(layero); //重点2
+                            }
+                        });
+                    }
+                    break;
+            }
+            ;
+        });
+
+    });
+</script>
+</body>
+</html>
