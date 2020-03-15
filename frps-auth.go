@@ -132,7 +132,6 @@ func ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	} else {
 		key := fmt.Sprintf("%s-%s-%d", apr.Content.ProxyType, apr.Content.ProxyName, apr.Content.RemotePort)
 		signBody := &SignBody{
-			ProxyName:  apr.Content.ProxyName,
 			ProxyType:  apr.Content.ProxyType,
 			RemotePort: apr.Content.RemotePort,
 			Subdomain:  apr.Content.Subdomain,

@@ -16,8 +16,6 @@ import (
 var bucket = "auth"
 
 type SignBody struct {
-	ProxyName string `json:"proxy_name"`
-
 	ProxyType string `json:"proxy_type"`
 
 	RemotePort uint16 `json:"remote_port"`
@@ -29,10 +27,11 @@ type SignBody struct {
 
 func (s SignBody) Sign() string {
 	var preSign string
-	if s.ProxyType == "http" || s.ProxyType == "https" {
-		preSign = fmt.Sprintf("__pt:%s__,__pn:%s__,__sb:%s__,__vt:%s__", s.ProxyType, s.ProxyName, s.Subdomain, s.ValidTo)
+	if s.ProxyType == "http" ||
+		s.ProxyType == "https" {
+		preSign = fmt.Sprintf("__pt:http[s]__,__sb:%s__,__vt:%s__", s.Subdomain, s.ValidTo)
 	} else {
-		preSign = fmt.Sprintf("__pt:%s__,__pn:%s__,__rp:%d__,__vt:%s__", s.ProxyType, s.ProxyName, s.RemotePort, s.ValidTo)
+		preSign = fmt.Sprintf("__pt:%s__,__rp:%d__,__vt:%s__", s.ProxyType, s.RemotePort, s.ValidTo)
 	}
 	return SignMD5(preSign)
 }
@@ -95,7 +94,6 @@ func AddAuthServeHTTP(w http.ResponseWriter, r *http.Request) {
 	Log.Info("add", aa)
 	key := fmt.Sprintf("%s-%s-%d", aa.ProxyType, aa.ProxyName, aa.RemotePort)
 	signBody := &SignBody{
-		ProxyName:  aa.ProxyName,
 		ProxyType:  aa.ProxyType,
 		RemotePort: aa.RemotePort,
 		Subdomain:  aa.ProxyName,
@@ -235,7 +233,6 @@ func UpdateAuthServeHTTP(w http.ResponseWriter, r *http.Request) {
 			ae.Memo = ua.Memo
 			ae.ValidTo = ua.ValidTo
 			signBody := &SignBody{
-				ProxyName:  ae.ProxyName,
 				ProxyType:  ae.ProxyType,
 				RemotePort: ae.RemotePort,
 				Subdomain:  ae.ProxyName,
@@ -302,17 +299,9 @@ func GetAuthConfigServerHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 	if ae.ProxyType == "http" ||
 		ae.ProxyType == "https" {
-		fmt.Fprint(w, fmt.Sprintf(`<html>
-		<head>
-		<title>授权信息</title>
-		<style>
-			div {
-				padding-left:20px;
-			}
-		</style>
-		</head>
-		<body>
-		<div>[%s]</div>
+
+		bodyStr := fmt.Sprintf(`
+		<div>[%s-%s]</div>
 		<div>type=%s</div>
 		<div>subdomain=%s</div>
 		<div>meta_valid_to=%s</div>
@@ -323,8 +312,36 @@ func GetAuthConfigServerHTTP(w http.ResponseWriter, r *http.Request) {
 		<div>#pool_count=20</div>
 		<div>#http_user=admin</div>
 		<div>#http_pwd=admin</div>
+		`, ae.ProxyType, ae.ProxyName, ae.ProxyType, ae.ProxyName, strconv.FormatInt(ae.ValidTo, 10), ae.Sign)
+
+		if ae.ProxyType == "http" {
+			bodyStr = fmt.Sprintf(`
+			%s
+			<div>[%s-%s-2https]</div>
+			<div>type=%s</div>
+			<div>subdomain=%s</div>
+			<div>meta_valid_to=%s</div>
+			<div>meta_sign=%s</div>
+			<div>plugin=https2http</div>
+			<div>plugin_local_addr=http_local_host:http_local_port</div>
+			<div>plugin_crt_path=./server.crt</div>
+			<div>plugin_key_path=./server.key</div>
+			`, bodyStr, ae.ProxyType, ae.ProxyName, ae.ProxyType, ae.ProxyName, strconv.FormatInt(ae.ValidTo, 10), ae.Sign)
+		}
+
+		fmt.Fprint(w, fmt.Sprintf(`<html>
+		<head>
+		<title>授权信息</title>
+		<style>
+			div {
+				padding-left:20px;
+			}
+		</style>
+		</head>
+		<body>
+		%s
 		</body>
-		</html>`, ae.ProxyName, ae.ProxyType, ae.ProxyName, strconv.FormatInt(ae.ValidTo, 10), ae.Sign))
+		</html>`, bodyStr))
 	} else {
 		fmt.Fprint(w, fmt.Sprintf(`<html>
 		<head>

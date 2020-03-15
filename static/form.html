@@ -24,7 +24,7 @@
     <div class="layui-form-item">
         <label class="layui-form-label">代理类型</label>
         <div class="layui-input-block">
-            <select name="proxy_type" lay-verify="required" lay-search="">
+            <select name="proxy_type" lay-verify="required" lay-filter="proxy-type" lay-search="">
                 <option value="">选择或搜索</option>
                 <option value="http">HTTP</option>
                 <option value="https">HTTPS</option>
@@ -135,6 +135,15 @@
             , trigger: 'click'
         });
 
+        form.on("select(proxy-type)", function (data) {
+            if (data.value == "http" || data.value == "https") {
+                document.querySelector('[name="remote_port"]').value = "0";
+                document.querySelector('[name="remote_port"]').setAttribute("disabled", "disabled")
+            } else {
+                document.querySelector('[name="remote_port"]').value = "";
+                document.querySelector('[name="remote_port"]').removeAttribute("disabled")
+            }
+        })
 
 
         //监听提交
