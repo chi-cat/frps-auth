@@ -20,13 +20,23 @@
                    class="layui-input">
         </div>
     </div>
+
     <div class="layui-form-item">
         <label class="layui-form-label">代理类型</label>
         <div class="layui-input-block">
-            <input type="text" name="proxy_type" lay-verify="required" placeholder="请输入代理类型" autocomplete="off"
-                   class="layui-input">
+            <select name="proxy_type" lay-verify="required" lay-search="">
+                <option value="">选择或搜索</option>
+                <option value="http">HTTP</option>
+                <option value="https">HTTPS</option>
+                <option value="tcp">TCP</option>
+                <option value="udp">UDP</option>
+                <option value="stcp ">STCP</option>
+                <option value="xtcp">XTCP</option>
+            </select>
         </div>
     </div>
+
+
     <div class="layui-form-item">
         <label class="layui-form-label">远程端口</label>
         <div class="layui-input-block">
@@ -75,6 +85,7 @@
                 document.querySelector('[name="proxy_name"]').setAttribute("disabled", "disabled")
                 document.querySelector('[name="proxy_type"]').setAttribute("disabled", "disabled")
                 document.querySelector('[name="remote_port"]').setAttribute("disabled", "disabled")
+                form.render("select")
             })
             submitFunc = function (submitData) {
                 submitData.id = id;
@@ -123,6 +134,8 @@
             elem: '[name="valid_to"]'
             , trigger: 'click'
         });
+
+
 
         //监听提交
         form.on('submit(post-auth)', function (data) {
