@@ -155,6 +155,9 @@ func ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if ae.Sign != sign {
 				return errors.New(sign)
 			}
+			if ae.Disabled {
+				return errors.New("disabled")
+			}
 			if (time.Now().UnixNano() / 1e6) > ae.ValidTo {
 				return errors.New(time.Now().Format("yyyy-MM-dd"))
 			}
@@ -182,6 +185,8 @@ func main() {
 	router.HandleFunc("/add-auth", AddAuthServeHTTP).Methods("POST")
 	router.HandleFunc("/update-auth", UpdateAuthServeHTTP).Methods("POST")
 	router.HandleFunc("/delete-auth/{id}", DeleteAuthServeHTTP).Methods("POST")
+	router.HandleFunc("/disable-auth/{id}", DisableAuthServeHTTP).Methods("POST")
+	router.HandleFunc("/enable-auth/{id}", EnableAuthServeHTTP).Methods("POST")
 	router.HandleFunc("/list-auth", ListAuthServeHTTP).Methods("POST")
 	router.HandleFunc("/get-auth/{id}", GetAuthServeHTTP).Methods("GET")
 	router.HandleFunc("/get-auth-config/{id}", GetAuthConfigServerHTTP).Methods("GET")

@@ -89,6 +89,8 @@ type AuthDataEntity struct {
 	Memo string `json:"memo"`
 
 	Sign string `json:"sign"`
+
+	Disabled bool `json:"disabled"`
 }
 
 func SignMD5(text string) string {
@@ -228,6 +230,72 @@ func GetAuthServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Fprint(w, string(aeJson))
+}
+
+func DisableAuthServeHTTP(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+
+	if err := Db.Update(func(tx *nutsdb.Tx) error {
+		var ae AuthDataEntity
+		e, err := tx.Get(bucket, []byte(params["id"]))
+		if nil != err {
+			return err
+		}
+		err2 := json.Unmarshal(e.Value, &ae)
+		if nil != err2 {
+			return err2
+		}
+
+		ae.Disabled = true
+		val, err := json.Marshal(ae)
+		if nil != err {
+			return err
+		}
+		if err := tx.Put(bucket, []byte(params["id"]), val, 0); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		Log.Error(err)
+		http.Error(w, "server error[DisableAuth-1].", 500)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprint(w, `{"status":0}`)
+
+}
+
+func EnableAuthServeHTTP(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+
+	if err := Db.Update(func(tx *nutsdb.Tx) error {
+		var ae AuthDataEntity
+		e, err := tx.Get(bucket, []byte(params["id"]))
+		if nil != err {
+			return err
+		}
+		err2 := json.Unmarshal(e.Value, &ae)
+		if nil != err2 {
+			return err2
+		}
+
+		ae.Disabled = false
+		val, err := json.Marshal(ae)
+		if nil != err {
+			return err
+		}
+		if err := tx.Put(bucket, []byte(params["id"]), val, 0); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		Log.Error(err)
+		http.Error(w, "server error[EnableAuth-1].", 500)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprint(w, `{"status":0}`)
+
 }
 
 func UpdateAuthServeHTTP(w http.ResponseWriter, r *http.Request) {

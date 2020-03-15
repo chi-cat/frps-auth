@@ -100,7 +100,7 @@
                         if (value.status == 0) {
                             parent.layui.table.reload('auth-table', {}, 'data')
                         } else {
-                            parent.layui.msg("请稍后再试...")
+                            parent.layui.layer.msg("请稍后再试...")
                         }
                         parent.layui.layer.closeAll()
                     })
@@ -144,7 +144,6 @@
                 document.querySelector('[name="remote_port"]').removeAttribute("disabled")
             }
         })
-
 
         //监听提交
         form.on('submit(post-auth)', function (data) {

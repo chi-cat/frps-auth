@@ -22,6 +22,15 @@
 
 <table class="layui-hide" id="frps-auth" lay-filter="auth-table"></table>
 
+<script type="text/html" id="disabled">
+    <div class="layui-input-inline">
+        {{#  if(d.disabled){ }}
+        <input type="checkbox" checked lay-skin="switch" lay-filter="switch" lay-text="Y|N" value="{{d.id}}">
+        {{#  } else { }}
+        <input type="checkbox" lay-skin="switch" lay-filter="switch" lay-text="Y|N" value="{{d.id}}">
+        {{#  } }}
+    </div>
+</script>
 
 <script src="/auth-statistics/layui/layui.js"></script>
 <script>
@@ -29,9 +38,10 @@
         version: '1583393622887' //为了更新 js 缓存，可忽略
     });
 
-    layui.use(['layer', 'table'], function () {
+    layui.use(['layer', 'table', 'form'], function () {
         var layer = layui.layer //弹层
             , table = layui.table //表格
+            , form = layui.form
 
         //执行一个 table 实例
         table.render({
@@ -48,12 +58,12 @@
             }, 'filter', 'exports', 'print']
             , cols: [[ //表头
                 {type: 'checkbox', fixed: 'left'}
-                , {field: 'id', title: 'ID', width: 80, sort: true, fixed: 'left'}
+                , {field: 'id', title: 'ID', width: 180, sort: true, fixed: 'left'}
                 , {field: 'proxy_name', title: '代理名称'}
-                , {field: 'proxy_type', title: '代理类型', sort: true}
-                , {field: 'remote_port', title: '远程端口', sort: true}
+                , {field: 'proxy_type', title: '代理类型', width: 120, sort: true}
+                , {field: 'remote_port', title: '远程端口', width: 120, sort: true}
                 , {
-                    field: 'valid_to', title: '有效期', sort: true, templet: function (d) {
+                    field: 'valid_to', title: '有效期', width: 200, sort: true, templet: function (d) {
                         var date = new Date(d.valid_to);
 
                         function prefixZero2(number) {
@@ -69,9 +79,36 @@
                 }
                 , {field: 'memo', title: '备注'}
                 , {field: 'sign', title: '签名'}
+                , {field: 'disabled', title: "禁用", templet: "#disabled", width: 120}
             ]]
             , id: 'auth-table'
         });
+
+        form.on("switch(switch)", function (data) {
+            if (data.elem.checked == true) {
+                fetch("/disable-auth/" + data.value, {
+                    method: 'POST'
+                }).then(value => value.json(), reason => layer.msg(reason))
+                    .then(value => {
+                        if (value.status == 0) {
+                            layer.msg("禁用成功！")
+                        } else {
+                            layer.msg("请稍后再试...")
+                        }
+                    })
+            } else {
+                fetch("/enable-auth/" + data.value, {
+                    method: 'POST'
+                }).then(value => value.json(), reason => layer.msg(reason))
+                    .then(value => {
+                        if (value.status == 0) {
+                            layer.msg("启用成功！")
+                        } else {
+                            layer.msg("请稍后再试...")
+                        }
+                    })
+            }
+        })
 
         //监听头工具栏事件
         table.on('toolbar(auth-table)', function (obj) {
