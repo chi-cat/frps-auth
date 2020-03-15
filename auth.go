@@ -15,6 +15,28 @@ import (
 
 var bucket = "auth"
 
+type SignBody struct {
+	ProxyName string `json:"proxy_name"`
+
+	ProxyType string `json:"proxy_type"`
+
+	RemotePort uint16 `json:"remote_port"`
+
+	Subdomain string `json:"subdomain"`
+
+	ValidTo string `json:"valid_to"`
+}
+
+func (s SignBody) Sign() string {
+	var preSign string
+	if s.ProxyType == "http" || s.ProxyType == "https" {
+		preSign = fmt.Sprintf("__pt:%s__,__pn:%s__,__sb:%s__,__vt:%s__", s.ProxyType, s.ProxyName, s.Subdomain, s.ValidTo)
+	} else {
+		preSign = fmt.Sprintf("__pt:%s__,__pn:%s__,__rp:%d__,__vt:%s__", s.ProxyType, s.ProxyName, s.RemotePort, s.ValidTo)
+	}
+	return SignMD5(preSign)
+}
+
 type AddAuthRequest struct {
 	ProxyName string `json:"proxy_name"`
 
@@ -53,7 +75,7 @@ type AuthDataEntity struct {
 
 func SignMD5(text string) string {
 	Log.Info(text)
-	fmt.Sprintf("{%s,%s}", text, "salt")
+	fmt.Sprintf("{%s,%s-%s}", text, Config.Salt, text)
 	ctx := md5.New()
 	ctx.Write([]byte(text))
 	return hex.EncodeToString(ctx.Sum(nil))
@@ -70,9 +92,16 @@ func AddAuthServeHTTP(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "Please send a valid request body.", 500)
 		return
 	}
+	Log.Info("add", aa)
 	key := fmt.Sprintf("%s-%s-%d", aa.ProxyType, aa.ProxyName, aa.RemotePort)
-	preSign := fmt.Sprintf("__pt:%s__,__pn:%s__,__rp:%d__,__vt:%s__", aa.ProxyType, aa.ProxyName, aa.RemotePort, strconv.FormatInt(aa.ValidTo, 10))
-	sign := SignMD5(preSign)
+	signBody := &SignBody{
+		ProxyName:  aa.ProxyName,
+		ProxyType:  aa.ProxyType,
+		RemotePort: aa.RemotePort,
+		Subdomain:  aa.ProxyName,
+		ValidTo:    strconv.FormatInt(aa.ValidTo, 10),
+	}
+	sign := signBody.Sign()
 	ai := &AuthDataEntity{
 		Id:         key,
 		ProxyName:  aa.ProxyName,
@@ -189,7 +218,7 @@ func UpdateAuthServeHTTP(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "Please send a valid request body.", 500)
 		return
 	}
-
+	Log.Info("add", ua)
 	if err := Db.Update(
 		func(tx *nutsdb.Tx) error {
 
@@ -205,8 +234,14 @@ func UpdateAuthServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 			ae.Memo = ua.Memo
 			ae.ValidTo = ua.ValidTo
-			preSign := fmt.Sprintf("__pt:%s__,__pn:%s__,__rp:%d__,__vt:%s__", ae.ProxyType, ae.ProxyName, ae.RemotePort, strconv.FormatInt(ae.ValidTo, 10))
-			ae.Sign = SignMD5(preSign)
+			signBody := &SignBody{
+				ProxyName:  ae.ProxyName,
+				ProxyType:  ae.ProxyType,
+				RemotePort: ae.RemotePort,
+				Subdomain:  ae.ProxyName,
+				ValidTo:    strconv.FormatInt(ae.ValidTo, 10),
+			}
+			ae.Sign = signBody.Sign()
 
 			val, err := json.Marshal(ae)
 			if nil != err {
@@ -265,13 +300,53 @@ func GetAuthConfigServerHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
-	fmt.Fprint(w, fmt.Sprintf(`<html>
-<head>
-<title>授权信息</title>
-</head>
-<body>
-meta_valid_to=%s</br>
-meta_sign=%s
-</body>
-</html>`, strconv.FormatInt(ae.ValidTo, 10),ae.Sign))
+	if ae.ProxyType == "http" ||
+		ae.ProxyType == "https" {
+		fmt.Fprint(w, fmt.Sprintf(`<html>
+		<head>
+		<title>授权信息</title>
+		<style>
+			div {
+				padding-left:20px;
+			}
+		</style>
+		</head>
+		<body>
+		<div>[%s]</div>
+		<div>type=%s</div>
+		<div>subdomain=%s</div>
+		<div>meta_valid_to=%s</div>
+		<div>meta_sign=%s</div>
+		<div>use_gzip=true</div>
+		<div>#local_ip=</div>
+		<div>#local_port=</div>
+		<div>#pool_count=20</div>
+		<div>#http_user=admin</div>
+		<div>#http_pwd=admin</div>
+		</body>
+		</html>`, ae.ProxyName, ae.ProxyType, ae.ProxyName, strconv.FormatInt(ae.ValidTo, 10), ae.Sign))
+	} else {
+		fmt.Fprint(w, fmt.Sprintf(`<html>
+		<head>
+		<title>授权信息</title>
+		<style>
+			div {
+				padding-left:20px;
+			}
+		</style>
+		</head>
+		<body>
+		<div>[%s]</div>
+		<div>type=%s</div>
+		<div>remote_port=%d</div>
+		<div>meta_valid_to=%s</div>
+		<div>meta_sign=%s</div>
+		<div>#local_ip=</div>
+		<div>#local_port=</div>
+		<div>#use_encryption=false</div>
+		<div>#use_compression=false</div>
+		</body>
+		</html>`, ae.ProxyName, ae.ProxyType, ae.RemotePort, strconv.FormatInt(ae.ValidTo, 10), ae.Sign))
+	}
+
 }

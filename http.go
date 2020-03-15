@@ -63,7 +63,7 @@ func NewHttpAuthMiddleware(user, passwd, skip string) *HttpAuthMiddleware {
 
 func (authMid *HttpAuthMiddleware) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		Log.Info(r.RequestURI)
+		//Log.Info(r.RequestURI)
 		reqUser, reqPasswd, hasAuth := r.BasicAuth()
 		if (authMid.user == "" && authMid.passwd == "") ||
 			(hasAuth && reqUser == authMid.user && reqPasswd == authMid.passwd) ||

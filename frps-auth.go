@@ -59,6 +59,7 @@ type AuthConfig struct {
 	Port     string `ini:"port"`
 	Username string `ini:"username"`
 	Password string `ini:"password"`
+	Salt     string `ini:"salt""`
 }
 
 var Config AuthConfig = AuthConfig{
@@ -66,6 +67,7 @@ var Config AuthConfig = AuthConfig{
 	Port:     "4000",
 	Username: "admin",
 	Password: "admin",
+	Salt:     "admin",
 }
 
 func init() {
@@ -98,6 +100,8 @@ type applyPortContent struct {
 
 	RemotePort uint16 `json:"remote_port"`
 
+	Subdomain string `json:"subdomain"`
+
 	Metas applyPortContentAuthMeta `json:"metas,omitempty"`
 }
 
@@ -127,8 +131,14 @@ func ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}`)
 	} else {
 		key := fmt.Sprintf("%s-%s-%d", apr.Content.ProxyType, apr.Content.ProxyName, apr.Content.RemotePort)
-		preSign := fmt.Sprintf("__pt:%s__,__pn:%s__,__rp:%d__,__vt:%s__", apr.Content.ProxyType, apr.Content.ProxyName, apr.Content.RemotePort, apr.Content.Metas.ValidTo)
-		sign := SignMD5(preSign)
+		signBody := &SignBody{
+			ProxyName:  apr.Content.ProxyName,
+			ProxyType:  apr.Content.ProxyType,
+			RemotePort: apr.Content.RemotePort,
+			Subdomain:  apr.Content.Subdomain,
+			ValidTo:    apr.Content.Metas.ValidTo,
+		}
+		sign := signBody.Sign()
 		err := Db.View(func(tx *nutsdb.Tx) error {
 			var ae AuthDataEntity
 			e, err := tx.Get(bucket, []byte(key))
