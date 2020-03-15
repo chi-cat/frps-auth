@@ -93,7 +93,7 @@ type AuthDataEntity struct {
 
 func SignMD5(text string) string {
 	Log.Info(text)
-	fmt.Sprintf("{%s,%s-%s}", text, Config.Salt, text)
+	text = fmt.Sprintf("{%s,%s-%s}", text, Config.Salt, text)
 	ctx := md5.New()
 	ctx.Write([]byte(text))
 	return hex.EncodeToString(ctx.Sum(nil))

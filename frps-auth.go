@@ -59,7 +59,7 @@ type AuthConfig struct {
 	Port     string `ini:"port"`
 	Username string `ini:"username"`
 	Password string `ini:"password"`
-	Salt     string `ini:"salt""`
+	Salt     string `ini:"salt"`
 }
 
 var Config AuthConfig = AuthConfig{
