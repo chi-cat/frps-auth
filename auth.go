@@ -15,6 +15,25 @@ import (
 
 var bucket = "auth"
 
+type KeyBuilder struct {
+	ProxyName string `json:"proxy_name"`
+
+	ProxyType string `json:"proxy_type"`
+
+	RemotePort uint16 `json:"remote_port"`
+
+	Subdomain string `json:"subdomain"`
+}
+
+func (s KeyBuilder) Key() string {
+	if s.ProxyType == "https" ||
+		s.ProxyType == "http" {
+		return fmt.Sprintf("http-s-%s-%d", s.Subdomain, s.RemotePort)
+	} else {
+		return fmt.Sprintf("%s-%s-%d", s.ProxyType, s.ProxyName, s.RemotePort)
+	}
+}
+
 type SignBody struct {
 	ProxyType string `json:"proxy_type"`
 
@@ -92,7 +111,13 @@ func AddAuthServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	Log.Info("add", aa)
-	key := fmt.Sprintf("%s-%s-%d", aa.ProxyType, aa.ProxyName, aa.RemotePort)
+	kb := &KeyBuilder{
+		ProxyName:  aa.ProxyName,
+		ProxyType:  aa.ProxyType,
+		RemotePort: aa.RemotePort,
+		Subdomain:  aa.ProxyName,
+	}
+	key := kb.Key()
 	signBody := &SignBody{
 		ProxyType:  aa.ProxyType,
 		RemotePort: aa.RemotePort,
@@ -297,10 +322,10 @@ func GetAuthConfigServerHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
+	var bodyStr string
 	if ae.ProxyType == "http" ||
 		ae.ProxyType == "https" {
-
-		bodyStr := fmt.Sprintf(`
+		bodyStr = fmt.Sprintf(`
 		<div>[%s-%s]</div>
 		<div>type=%s</div>
 		<div>subdomain=%s</div>
@@ -311,25 +336,21 @@ func GetAuthConfigServerHTTP(w http.ResponseWriter, r *http.Request) {
 		<div>#local_port=</div>
 		<div>#pool_count=20</div>
 		<div>#http_user=admin</div>
-		<div>#http_pwd=admin</div>
-		`, ae.ProxyType, ae.ProxyName, ae.ProxyType, ae.ProxyName, strconv.FormatInt(ae.ValidTo, 10), ae.Sign)
+		<div>#http_pwd=admin</div>`, ae.ProxyType, ae.ProxyName, ae.ProxyType, ae.ProxyName, strconv.FormatInt(ae.ValidTo, 10), ae.Sign)
 
-		if ae.ProxyType == "http" {
-			bodyStr = fmt.Sprintf(`
-			%s
-			<div>[%s-%s-2https]</div>
-			<div>type=%s</div>
-			<div>subdomain=%s</div>
-			<div>meta_valid_to=%s</div>
-			<div>meta_sign=%s</div>
-			<div>plugin=https2http</div>
-			<div>plugin_local_addr=http_local_host:http_local_port</div>
-			<div>plugin_crt_path=./server.crt</div>
-			<div>plugin_key_path=./server.key</div>
-			`, bodyStr, ae.ProxyType, ae.ProxyName, ae.ProxyType, ae.ProxyName, strconv.FormatInt(ae.ValidTo, 10), ae.Sign)
-		}
+	} else {
+		fmt.Fprint(w, fmt.Sprintf(`
+		<div>[%s]</div>
+		<div>type=%s</div>
+		<div>remote_port=%d</div>
+		<div>meta_valid_to=%s</div>
+		<div>meta_sign=%s</div>
+		<div>#local_ip=</div>
+		<div>#local_port=</div>
+		<div>#use_compression=false</div>`, ae.ProxyName, ae.ProxyType, ae.RemotePort, strconv.FormatInt(ae.ValidTo, 10), ae.Sign))
+	}
 
-		fmt.Fprint(w, fmt.Sprintf(`<html>
+	fmt.Fprint(w, fmt.Sprintf(`<html>
 		<head>
 		<title>授权信息</title>
 		<style>
@@ -342,28 +363,5 @@ func GetAuthConfigServerHTTP(w http.ResponseWriter, r *http.Request) {
 		%s
 		</body>
 		</html>`, bodyStr))
-	} else {
-		fmt.Fprint(w, fmt.Sprintf(`<html>
-		<head>
-		<title>授权信息</title>
-		<style>
-			div {
-				padding-left:20px;
-			}
-		</style>
-		</head>
-		<body>
-		<div>[%s]</div>
-		<div>type=%s</div>
-		<div>remote_port=%d</div>
-		<div>meta_valid_to=%s</div>
-		<div>meta_sign=%s</div>
-		<div>#local_ip=</div>
-		<div>#local_port=</div>
-		<div>#use_encryption=false</div>
-		<div>#use_compression=false</div>
-		</body>
-		</html>`, ae.ProxyName, ae.ProxyType, ae.RemotePort, strconv.FormatInt(ae.ValidTo, 10), ae.Sign))
-	}
 
 }
