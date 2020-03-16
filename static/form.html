@@ -6,7 +6,7 @@
     <meta name="renderer" content="webkit">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <link rel="stylesheet" href="/auth-statistics/layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="/layui/css/layui.css" media="all">
     <!-- 注意：如果你直接复制所有代码到本地，上述css路径需要改成你本地的 -->
 </head>
 <body>
@@ -48,7 +48,8 @@
     <div class="layui-form-item">
         <label class="layui-form-label">有效期</label>
         <div class="layui-input-block">
-            <input type="text" name="valid_to" lay-verify="required|date" placeholder="yyyy-MM-dd" placeholder="请选择有效期"
+            <input type="text" name="auth_valid_to" lay-verify="required|date" placeholder="yyyy-MM-dd"
+                   placeholder="请选择有效期"
                    autocomplete="off" class="layui-input">
         </div>
     </div>
@@ -68,7 +69,7 @@
     </div>
 </form>
 
-<script src="/auth-statistics/layui/layui.js" charset="utf-8"></script>
+<script src="/layui/layui.js" charset="utf-8"></script>
 <!-- 注意：如果你直接复制所有代码到本地，上述js路径需要改成你本地的 -->
 <script>
     layui.use(['form', 'layedit', 'laydate'], function () {
@@ -77,10 +78,10 @@
         if (!!window.location.hash) {
             var id = window.location.hash.substr(1);
             fetch("/get-auth/" + id).then(value => value.json(), reason => layer.msg(reason)).then(value => {
-                value.valid_to = (function (timestamp) {
+                value.auth_valid_to = (function (timestamp) {
                     var date = new Date(timestamp);
                     return date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate();
-                })(value.valid_to);
+                })(value.auth_valid_to);
                 form.val('edit-auth-form', value);
                 document.querySelector('[name="proxy_name"]').setAttribute("disabled", "disabled")
                 document.querySelector('[name="proxy_type"]').setAttribute("disabled", "disabled")
@@ -131,7 +132,7 @@
 
         //日期
         laydate.render({
-            elem: '[name="valid_to"]'
+            elem: '[name="auth_valid_to"]'
             , trigger: 'click'
         });
 
@@ -149,7 +150,7 @@
         form.on('submit(post-auth)', function (data) {
             var submitData = {};
             for (var k in data.field) {
-                if (k === "valid_to") {
+                if (k === "auth_valid_to") {
                     submitData[k] = new Date(data.field[k]).getTime();
                 } else if (k === "remote_port") {
                     submitData[k] = new Number(data.field[k]);

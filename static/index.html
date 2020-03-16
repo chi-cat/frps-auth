@@ -5,7 +5,7 @@
     <meta name="viewport"
           content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
     <title>FRPS授权</title>
-    <link rel="stylesheet" href="/auth-statistics/layui/css/layui.css" media="all">
+    <link rel="stylesheet" href="/layui/css/layui.css" media="all">
     <style>
         body {
             margin: 10px;
@@ -32,7 +32,7 @@
     </div>
 </script>
 
-<script src="/auth-statistics/layui/layui.js"></script>
+<script src="/layui/layui.js"></script>
 <script>
     layui.config({
         version: '1583393622887' //为了更新 js 缓存，可忽略
@@ -58,13 +58,13 @@
             }, 'filter', 'exports', 'print']
             , cols: [[ //表头
                 {type: 'checkbox', fixed: 'left'}
-                , {field: 'id', title: 'ID', width: 180, sort: true, fixed: 'left'}
-                , {field: 'proxy_name', title: '代理名称'}
+                , {field: 'id', title: 'ID', width: 160, sort: true, fixed: 'left'}
+                , {field: 'proxy_name', title: '代理名称', width: 120}
                 , {field: 'proxy_type', title: '代理类型', width: 120, sort: true}
-                , {field: 'remote_port', title: '远程端口', width: 120, sort: true}
+                , {field: 'remote_port', title: '端口', width: 80, sort: true}
                 , {
-                    field: 'valid_to', title: '有效期', width: 200, sort: true, templet: function (d) {
-                        var date = new Date(d.valid_to);
+                    field: 'auth_valid_to', title: '有效期', width: 120, sort: true, templet: function (d) {
+                        var date = new Date(d.auth_valid_to);
 
                         function prefixZero2(number) {
                             if (number < 10) {
@@ -123,7 +123,7 @@
                         , area: ['600px', '400px']
                         , shade: 0.8
                         , maxmin: false
-                        , content: '/auth-statistics/form.html'
+                        , content: '/form.html'
                         , zIndex: layer.zIndex //重点1
                         , success: function (layero) {
                             layer.setTop(layero); //重点/2
@@ -143,7 +143,7 @@
                             , area: ['500px', '400px']
                             , shade: 0.8
                             , maxmin: false
-                            , content: '/auth-statistics/form.html#' + checkStatus.data[0].id
+                            , content: '/form.html#' + checkStatus.data[0].id
                             , zIndex: layer.zIndex //重点1
                             , success: function (layero) {
                                 layer.setTop(layero); //重点2
@@ -162,9 +162,9 @@
                                 .then(value => {
                                     if (value.status == 0) {
                                         table.reload('auth-table', {}, 'data')
-                                        parent.layui.msg("删除成功！")
+                                        layer.msg("删除成功！")
                                     } else {
-                                        parent.layui.msg("请稍后再试...")
+                                        layer.msg("请稍后再试...")
                                     }
                                 })
 
@@ -194,9 +194,7 @@
                     }
                     break;
             }
-            ;
         });
-
     });
 </script>
 </body>

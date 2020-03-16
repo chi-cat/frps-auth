@@ -106,7 +106,8 @@ type applyPortContent struct {
 }
 
 type applyPortContentAuthMeta struct {
-	ValidTo string `json:"valid_to"`
+	SignKey string `json:"auth_key"`
+	ValidTo string `json:"auth_valid_to"`
 }
 
 func ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -140,6 +141,7 @@ func ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			RemotePort: apr.Content.RemotePort,
 			Subdomain:  apr.Content.Subdomain,
 			ValidTo:    apr.Content.Metas.ValidTo,
+			AuthKey:    apr.Content.Metas.SignKey,
 		}
 		sign := signBody.Sign()
 		err := Db.View(func(tx *nutsdb.Tx) error {
@@ -190,7 +192,7 @@ func main() {
 	router.HandleFunc("/list-auth", ListAuthServeHTTP).Methods("POST")
 	router.HandleFunc("/get-auth/{id}", GetAuthServeHTTP).Methods("GET")
 	router.HandleFunc("/get-auth-config/{id}", GetAuthConfigServerHTTP).Methods("GET")
-	router.PathPrefix("/auth-statistics/").Handler(MakeHttpGzipHandler(http.StripPrefix("/auth-statistics/", http.FileServer(http.Dir("static/"))))).Methods("GET")
+	router.PathPrefix("/").Handler(MakeHttpGzipHandler(http.StripPrefix("/", http.FileServer(http.Dir("static/"))))).Methods("GET")
 	addr := Config.Address
 	port := Config.Port
 

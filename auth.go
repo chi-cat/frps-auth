@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/satori/go.uuid"
 	"github.com/xujiajun/nutsdb"
 	"net/http"
 	"strconv"
@@ -41,16 +42,18 @@ type SignBody struct {
 
 	Subdomain string `json:"subdomain"`
 
-	ValidTo string `json:"valid_to"`
+	AuthKey string `json:"auth_key"`
+
+	ValidTo string `json:"auth_valid_to"`
 }
 
 func (s SignBody) Sign() string {
 	var preSign string
 	if s.ProxyType == "http" ||
 		s.ProxyType == "https" {
-		preSign = fmt.Sprintf("__pt:http[s]__,__sb:%s__,__vt:%s__", s.Subdomain, s.ValidTo)
+		preSign = fmt.Sprintf("__pt:http[s]__,__sb:%s__,__vt:%s__,__sk:%s__", s.Subdomain, s.ValidTo, s.AuthKey)
 	} else {
-		preSign = fmt.Sprintf("__pt:%s__,__rp:%d__,__vt:%s__", s.ProxyType, s.RemotePort, s.ValidTo)
+		preSign = fmt.Sprintf("__pt:%s__,__rp:%d__,__vt:%s__,__sk:%s__", s.ProxyType, s.RemotePort, s.ValidTo, s.AuthKey)
 	}
 	return SignMD5(preSign)
 }
@@ -62,7 +65,7 @@ type AddAuthRequest struct {
 
 	RemotePort uint16 `json:"remote_port"`
 
-	ValidTo int64 `json:"valid_to"`
+	ValidTo int64 `json:"auth_valid_to"`
 
 	Memo string `json:"memo"`
 }
@@ -70,7 +73,7 @@ type AddAuthRequest struct {
 type UpdateAuthRequest struct {
 	Id string `json:"id"`
 
-	ValidTo int64 `json:"valid_to"`
+	ValidTo int64 `json:"auth_valid_to"`
 
 	Memo string `json:"memo"`
 }
@@ -84,9 +87,11 @@ type AuthDataEntity struct {
 
 	RemotePort uint16 `json:"remote_port"`
 
-	ValidTo int64 `json:"valid_to"`
+	ValidTo int64 `json:"auth_valid_to"`
 
 	Memo string `json:"memo"`
+
+	AuthKey string `json:"auth_key"`
 
 	Sign string `json:"sign"`
 
@@ -99,6 +104,14 @@ func SignMD5(text string) string {
 	ctx := md5.New()
 	ctx.Write([]byte(text))
 	return hex.EncodeToString(ctx.Sum(nil))
+}
+
+func createSignKey() string {
+	id, err := uuid.NewV4()
+	if nil != err {
+		return uuid.NewV5(uuid.NamespaceURL, "frps-auth").String()
+	}
+	return id.String()
 }
 
 func AddAuthServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -125,6 +138,7 @@ func AddAuthServeHTTP(w http.ResponseWriter, r *http.Request) {
 		RemotePort: aa.RemotePort,
 		Subdomain:  aa.ProxyName,
 		ValidTo:    strconv.FormatInt(aa.ValidTo, 10),
+		AuthKey:    createSignKey(),
 	}
 	sign := signBody.Sign()
 	ai := &AuthDataEntity{
@@ -134,6 +148,7 @@ func AddAuthServeHTTP(w http.ResponseWriter, r *http.Request) {
 		RemotePort: aa.RemotePort,
 		ValidTo:    aa.ValidTo,
 		Memo:       aa.Memo,
+		AuthKey:    signBody.AuthKey,
 		Sign:       sign,
 	}
 	val, err := json.Marshal(ai)
@@ -234,7 +249,7 @@ func GetAuthServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func DisableAuthServeHTTP(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-
+	Log.Info("disable", params["id"])
 	if err := Db.Update(func(tx *nutsdb.Tx) error {
 		var ae AuthDataEntity
 		e, err := tx.Get(bucket, []byte(params["id"]))
@@ -267,7 +282,7 @@ func DisableAuthServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func EnableAuthServeHTTP(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
-
+	Log.Info("enable", params["id"])
 	if err := Db.Update(func(tx *nutsdb.Tx) error {
 		var ae AuthDataEntity
 		e, err := tx.Get(bucket, []byte(params["id"]))
@@ -309,7 +324,7 @@ func UpdateAuthServeHTTP(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "Please send a valid request body.", 500)
 		return
 	}
-	Log.Info("add", ua)
+	Log.Info("update", ua)
 	if err := Db.Update(
 		func(tx *nutsdb.Tx) error {
 
@@ -329,6 +344,7 @@ func UpdateAuthServeHTTP(w http.ResponseWriter, r *http.Request) {
 				ProxyType:  ae.ProxyType,
 				RemotePort: ae.RemotePort,
 				Subdomain:  ae.ProxyName,
+				AuthKey:    ae.AuthKey,
 				ValidTo:    strconv.FormatInt(ae.ValidTo, 10),
 			}
 			ae.Sign = signBody.Sign()
@@ -354,6 +370,7 @@ func UpdateAuthServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func DeleteAuthServeHTTP(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
+	Log.Info("delete", params["id"])
 	err := Db.Update(func(tx *nutsdb.Tx) error {
 		err := tx.Delete(bucket, []byte(params["id"]))
 		if nil != err {
@@ -397,25 +414,27 @@ func GetAuthConfigServerHTTP(w http.ResponseWriter, r *http.Request) {
 		<div>[%s-%s]</div>
 		<div>type=%s</div>
 		<div>subdomain=%s</div>
-		<div>meta_valid_to=%s</div>
-		<div>meta_sign=%s</div>
+		<div>meta_auth_valid_to=%s</div>
+		<div>meta_auth_key=%s</div>
 		<div>use_gzip=true</div>
 		<div>#local_ip=</div>
 		<div>#local_port=</div>
 		<div>#pool_count=20</div>
 		<div>#http_user=admin</div>
-		<div>#http_pwd=admin</div>`, ae.ProxyType, ae.ProxyName, ae.ProxyType, ae.ProxyName, strconv.FormatInt(ae.ValidTo, 10), ae.Sign)
+		<div>#http_pwd=admin</div>`, ae.ProxyType, ae.ProxyName, ae.ProxyType, ae.ProxyName, strconv.FormatInt(ae.ValidTo, 10), ae.AuthKey)
 
 	} else {
 		fmt.Fprint(w, fmt.Sprintf(`
 		<div>[%s]</div>
 		<div>type=%s</div>
 		<div>remote_port=%d</div>
-		<div>meta_valid_to=%s</div>
-		<div>meta_sign=%s</div>
+		<div>meta_auth_valid_to=%s</div>
+		<div>meta_auth_key=%s</div>
 		<div>#local_ip=</div>
 		<div>#local_port=</div>
-		<div>#use_compression=false</div>`, ae.ProxyName, ae.ProxyType, ae.RemotePort, strconv.FormatInt(ae.ValidTo, 10), ae.Sign))
+		<div>#use_compression=false</div>
+		<div>#use_compression = true</div>
+		`, ae.ProxyName, ae.ProxyType, ae.RemotePort, strconv.FormatInt(ae.ValidTo, 10), ae.AuthKey))
 	}
 
 	fmt.Fprint(w, fmt.Sprintf(`<html>
