@@ -169,7 +169,7 @@ func ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, fmt.Sprintf(`{
 			 "reject": true,
 			 "reject_reason": "invalid[%s]"
-			}`, sign))
+			}`, err.Error()))
 			return
 		}
 		fmt.Fprint(w, `{
