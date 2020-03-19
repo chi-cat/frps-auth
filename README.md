@@ -4,8 +4,12 @@
 * [frp](https://github.com/fatedier/frp)
 * [数据库 nutsdb](https://github.com/xujiajun/nutsdb)
 
+### Release
+
+[release v0.2](https://github.com/dev-lluo/frps-auth/releases/tag/v0.2)
+
 ### 配置
-* 通过后台配置支持的Token和授权时间，只允许 frpc 客户端创建通过鉴权的代理
+* 通过后台页面配置授权Token和授权时间，只允许 frpc 客户端创建通过鉴权的代理
 
 1. 创建 `frps-auth.ini` 文件。
 ```
@@ -45,7 +49,7 @@ ops=NewProxy
 ![image](https://raw.githubusercontent.com/dev-lluo/readme-images/master/add-frps.auth.png)
 
 ```
-添加一个授权；当类型选择为HTTP时；同时支持https授权；此时端口设置禁用。
+添加一个授权；当类型选择为HTTP时；同时支持https授权；此时端口设置禁用,代理名称将成为subdomain。
 ```
 
 2.修改一个授权信息
