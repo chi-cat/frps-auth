@@ -123,7 +123,8 @@ func ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if apr.OpType != "NewProxy" {
+	if apr.OpType != "NewProxy" &&
+		apr.OpType != "Heartbeat" {
 		fmt.Fprint(w, `{
 			"reject": false,
 			"unchange": true
