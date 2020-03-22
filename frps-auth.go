@@ -123,6 +123,7 @@ func ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+	Log.Info(apr)
 	if apr.OpType != "NewProxy" &&
 		apr.OpType != "Heartbeat" {
 		fmt.Fprint(w, `{
@@ -167,6 +168,7 @@ func ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return nil
 		})
 		if nil != err {
+			Log.Info(err)
 			fmt.Fprint(w, fmt.Sprintf(`{
 			 "reject": true,
 			 "reject_reason": "invalid[%s]"
