@@ -18,9 +18,9 @@ address=0.0.0.0
 port=4000
 #后台管理用户名
 username=admin
-#后台管理密码
+#后台管理密码;此项必填
 password=
-#签名盐值
+#签名盐值；此项必填；一个随机字符串
 salt=
 ```
 2.修改fprs的配置文件 `frps.ini`注册插件并启动。
