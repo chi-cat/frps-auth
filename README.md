@@ -18,9 +18,9 @@ address=0.0.0.0
 port=4000
 #后台管理用户名
 username=admin
-#后台管理密码
+#后台管理密码;此项必填
 password=
-#签名盐值
+#签名盐值；此项必填；一个随机字符串
 salt=
 ```
 2.修改fprs的配置文件 `frps.ini`注册插件并启动。
@@ -76,6 +76,10 @@ meta_auth_key=
 ```
 当你只是想临时想关闭某个服务的对外访问时；可以启用
 ```
+
+注意；开启禁用后；在frp默认版本上只有在客户端重启或网络链接断开后重新连接时生效;
+如果需要即时生效；请访问(ping-plugin分支)[https://github.com/dev-lluo/frp/tree/ping-plugin] ;此分支为个人修改版本。
+根据和frp作者大大沟通；在frp的[dev分支](https://github.com/fatedier/frp/tree/dev)上已经加入了类似的api，此功能可能会在dev合并到master分支后发生更改。
 
 ### 备注
 
