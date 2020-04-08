@@ -67,10 +67,10 @@ func (authMid *HttpAuthMiddleware) Middleware(next http.Handler) http.Handler {
 		reqUser, reqPasswd, hasAuth := r.BasicAuth()
 		if (authMid.user == "" && authMid.passwd == "") ||
 			(hasAuth && reqUser == authMid.user && reqPasswd == authMid.passwd) ||
-			r.RequestURI == authMid.skip {
+			r.URL.Path == authMid.skip {
 			next.ServeHTTP(w, r)
 		} else {
-			Log.Warning(fmt.Sprintf("%s At %s failed.", reqUser, time.Now()))
+			Log.Warning(fmt.Sprintf("%s %s At %s failed.", reqUser, r.RequestURI, time.Now()))
 			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 		}
