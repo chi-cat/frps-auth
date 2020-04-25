@@ -137,7 +137,7 @@
         });
 
         form.on("select(proxy-type)", function (data) {
-            if (data.value == "http" || data.value == "https") {
+            if (data.value == "http" || data.value == "https" || data.value == "stcp" || data.value == "xtcp") {
                 document.querySelector('[name="remote_port"]').value = "0";
                 document.querySelector('[name="remote_port"]').setAttribute("disabled", "disabled")
             } else {

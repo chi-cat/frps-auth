@@ -423,6 +423,24 @@ func GetAuthConfigServerHTTP(w http.ResponseWriter, r *http.Request) {
 		<div>#http_user=admin</div>
 		<div>#http_pwd=admin</div>`, ae.ProxyType, ae.ProxyName, ae.ProxyType, ae.ProxyName, strconv.FormatInt(ae.ValidTo, 10), ae.AuthKey)
 
+	} else if ae.ProxyType == "xtcp" ||
+		ae.ProxyType == "stcp" {
+		fmt.Fprint(w, fmt.Sprintf(`
+		<div>[%s]</div>
+		<div>type=%s</div>
+		<div>sk=changeme!</div>
+		<div># connect this address to visitor stcp server</div>
+		<div>bind_addr=127.0.0.1</div>
+		<div>bind_port=0</div>
+		<div>meta_auth_valid_to=%s</div>
+		<div>meta_auth_key=%s</div>
+		<div># frpc role visitor -> frps -> frpc role server</div>
+		<div>#role=visitor</div>
+		<div># the server name you want to visitor</div>
+		<div>#server_name=changeme!</div>
+		<div>#use_encryption=false</div>
+		<div>#use_compression=false</div>
+		`, ae.ProxyName, ae.ProxyType, strconv.FormatInt(ae.ValidTo, 10), ae.AuthKey))
 	} else {
 		fmt.Fprint(w, fmt.Sprintf(`
 		<div>[%s]</div>
