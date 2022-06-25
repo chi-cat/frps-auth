@@ -60,6 +60,7 @@ type AuthConfig struct {
 	Username string `ini:"username"`
 	Password string `ini:"password"`
 	Salt     string `ini:"salt"`
+	Static   string `ini:"static"`
 }
 
 var Config AuthConfig = AuthConfig{
@@ -68,6 +69,7 @@ var Config AuthConfig = AuthConfig{
 	Username: "admin",
 	Password: "admin",
 	Salt:     "admin",
+	Static:   "",
 }
 
 func init() {
@@ -103,11 +105,25 @@ type applyPortContent struct {
 	Subdomain string `json:"subdomain"`
 
 	Metas applyPortContentAuthMeta `json:"metas,omitempty"`
+
+	User applyPortContentUser `json:"user"`
+
+	PrivilegeKey string `json:"privilege_key"`
+
+	Timestamp int64 `json:"timestamp"`
 }
 
 type applyPortContentAuthMeta struct {
 	SignKey string `json:"auth_key"`
 	ValidTo string `json:"auth_valid_to"`
+}
+
+type applyPortContentUser struct {
+	User string `json:"user"`
+
+	RunId string `json:"run_id"`
+
+	Metas map[string]string `json:"metas"`
 }
 
 func ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -162,7 +178,7 @@ func ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if ae.Disabled {
 				return errors.New("disabled")
 			}
-			if (time.Now().UnixNano() / 1e6) > ae.ValidTo {
+			if (time.Now().UnixNano() / int64(1e6)) > ae.ValidTo {
 				return errors.New(time.Now().Format("yyyy-MM-dd"))
 			}
 			return nil
@@ -195,7 +211,7 @@ func main() {
 	router.HandleFunc("/list-auth", ListAuthServeHTTP).Methods("POST")
 	router.HandleFunc("/get-auth/{id}", GetAuthServeHTTP).Methods("GET")
 	router.HandleFunc("/get-auth-config/{id}", GetAuthConfigServerHTTP).Methods("GET")
-	router.PathPrefix("/").Handler(MakeHttpGzipHandler(http.StripPrefix("/", http.FileServer(http.Dir("static/"))))).Methods("GET")
+	router.PathPrefix("/").Handler(MakeHttpGzipHandler(http.StripPrefix("/", http.FileServer(getStaticFS(Config.Static))))).Methods("GET")
 	addr := Config.Address
 	port := Config.Port
 

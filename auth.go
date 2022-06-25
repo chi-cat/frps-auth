@@ -107,11 +107,8 @@ func SignMD5(text string) string {
 }
 
 func createSignKey() string {
-	id, err := uuid.NewV4()
-	if nil != err {
-		return uuid.NewV5(uuid.NamespaceURL, "frps-auth").String()
-	}
-	return id.String()
+	v4 := uuid.NewV4()
+	return v4.String()
 }
 
 func AddAuthServeHTTP(w http.ResponseWriter, r *http.Request) {
