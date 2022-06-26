@@ -6,7 +6,8 @@
 
 ### Release
 
-[release v0.2](https://github.com/dev-lluo/frps-auth/releases/tag/v0.2)
+* [release v0.2](https://github.com/dev-lluo/frps-auth/releases/tag/v0.2)
+* [release v0.4.20.beta](https://github.com/dev-lluo/frps-auth/releases/tag/v0.4.20.beta)
 
 ### 配置
 * 通过后台页面配置授权Token和授权时间，只允许 frpc 客户端创建通过鉴权的代理
@@ -29,7 +30,7 @@ salt=
 [plugin.port-manager]
 addr=0.0.0.0:4000
 path=/auth
-ops=NewProxy
+ops=NewProxy,Heartbeat
 ```
 
 ### 后台管理使用
@@ -78,8 +79,17 @@ meta_auth_key=
 ```
 
 注意；开启禁用后；在frp默认版本上只有在客户端重启或网络链接断开后重新连接时生效;
-如果需要即时生效；请访问(ping-plugin分支)[https://github.com/dev-lluo/frp/tree/ping-plugin] ;此分支为个人修改版本。
-根据和frp作者大大沟通；在frp的[dev分支](https://github.com/fatedier/frp/tree/dev)上已经加入了类似的api，此功能可能会在dev合并到master分支后发生更改。
+~~如果需要即时生效；请访问(ping-plugin分支)[https://github.com/dev-lluo/frp/tree/ping-plugin] ;此分支为个人修改版本。~~
+~~根据和frp作者大大沟通；在frp的[dev分支](https://github.com/fatedier/frp/tree/dev)上已经加入了类似的api，此功能可能会在dev合并到master分支后发生更改。~~
+
+如果需要即时生效；请访问(heartbeat-plugin分支,基于0.42.0版本)[https://github.com/dev-lluo/frp/tree/heartbeat-plugin] ;此分支为个人修改版本。
+ping-plugin分支由于鸽了太久;没有同步主干代码;目前不推荐使用
+
+### 关于为啥同步主干代码后还会有heartbeat-plugin分支
+frps主干目前已加入Ping的扩展点,但似乎是基于整个client端的;由客户端与服务器心跳触发;且此消息不会携带meta的扩展属性;
+但由于此插件的临时授权开关是基于Proxy的;所以又另外维护了一个heartbeat-plugin分支;由server端主动触发;
+
+
 
 ### 备注
 

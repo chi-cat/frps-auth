@@ -4,4 +4,3 @@
 **/*.log
 **/*.exe
 **/go.sum
-./frps-auth
